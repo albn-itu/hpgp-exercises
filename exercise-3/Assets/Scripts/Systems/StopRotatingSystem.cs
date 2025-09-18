@@ -27,11 +27,17 @@ partial struct StopRotatingSystem : ISystem
             ElapsedTime = elapsedTime,
         }.ScheduleParallel(state.Dependency);
         
-        state.Dependency = new StopRotatingJob
+        JobHandle addStopRotationComponentHandle = new AddStopRotatingComponentJob
         {
             ElapsedTime = elapsedTime,
             ECB = ecb,
         }.ScheduleParallel(initRandomDataHandle);
+        
+        state.Dependency = new StopRotatingJob
+        {
+            ElapsedTime = elapsedTime,
+            ECB = ecb,
+        }.ScheduleParallel(addStopRotationComponentHandle);
     }
 }
 
@@ -51,7 +57,7 @@ partial struct InitRandomDataJob : IJobEntity
 
 [BurstCompile]
 [WithNone(typeof(StopRotatingComponent))]
-partial struct StopRotatingJob : IJobEntity
+partial struct AddStopRotatingComponentJob : IJobEntity
 {
     public float ElapsedTime;
     public EntityCommandBuffer.ParallelWriter ECB;
@@ -72,7 +78,7 @@ partial struct StopRotatingJob : IJobEntity
         {
             ECB.AddComponent(chunkIndex, entity, new StopRotatingComponent
             {
-                TimeToStop = ElapsedTime + randomData.Generator.NextInt(0, 3)
+                TimeToStop = ElapsedTime + randomData.Generator.NextInt(1, 5)
             });
             
             baseColor.Value = red;
@@ -87,22 +93,21 @@ partial struct StopRotatingJob : IJobEntity
 
 [BurstCompile]
 [WithAll(typeof(StopRotatingComponent))]
-partial struct StopRotatingJobEnable : IJobEntity
+partial struct StopRotatingJob : IJobEntity
 {
     public float ElapsedTime;
     public EntityCommandBuffer.ParallelWriter ECB;
     
-    public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref StopRotatingComponent stopRotating, ref URPMaterialPropertyBaseColor baseColor)
+    public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in StopRotatingComponent stopRotating, ref URPMaterialPropertyBaseColor baseColor)
     {
         var purple = new float4(1, 0, 1, 1);
-        var darkGreen = new float4(0, 0.5f, 0, 1);
+        var yellow = new float4(1, 1, 0, 1);
 
         baseColor.Value = new float4(1, 1, 1, 1);
 
-        float time = ElapsedTime - stopRotating.TimeToStop;
-        if (time < 0)
+        if (ElapsedTime <= stopRotating.TimeToStop) // not yet time to stop
         {
-            baseColor.Value = darkGreen;
+            baseColor.Value = yellow;
             return;
         }
         

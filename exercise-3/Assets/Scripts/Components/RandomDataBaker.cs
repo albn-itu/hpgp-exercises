@@ -14,8 +14,6 @@ public class RandomDataBaker : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new RandomDataComponent
             {
-                Generator = new Random(1),
-                Initialized = false,
                 Duration = authoring.duration,
             });
         }
